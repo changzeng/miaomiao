@@ -1,9 +1,14 @@
 import json,time,os
 import numpy as np
+from numpy import random
 from random import randint
 from math import log2
+from random import randint
 
 class Markov:
+    def __init__(self):
+        self.MIN = -1e100;
+
     #确定每一个字在emit_matrix中的序列号
     def get_emit_index(self):
         #--发射矩阵索引
@@ -24,7 +29,6 @@ class Markov:
 
     #初始化markov模型的所有参数
     def initial_parameter(self):
-        self.MIN = -1e100;
         #初始状态矩阵
         self.pi = np.array([-1.0,self.MIN,self.MIN,-1.0])
         #如果存在文件
@@ -44,11 +48,15 @@ class Markov:
             self.state_num = 4
             #---状态数目
             self.state_index = {'B':0,'M':1,'E':2,'S':3}
-            self.index_to_state = {0:'B',1:'M',2:'E',3:'S'}
             #--初始化发射矩阵
             self.emit_matrix = self.get_random_matrix(self.state_num,self.emit_num)
             #--状态转移矩阵
             self.transfer_matrix = self.get_random_matrix(self.state_num,self.state_num)
+            self.set_minus_infinite(self.transfer_matrix[0],(0,3))
+            self.set_minus_infinite(self.transfer_matrix[1],(0,3))
+            self.set_minus_infinite(self.transfer_matrix[2],(1,2))
+            self.set_minus_infinite(self.transfer_matrix[3],(1,2))
+        self.index_to_state = {0:'B',1:'M',2:'E',3:'S'}
         #读入数据并计算长度
         with open("new_train.data") as fd:
             self.str = np.array(list(fd.read()))
@@ -56,23 +64,25 @@ class Markov:
 
     #返回一个和为1的随机向量
     def get_random_matrix(self,r,c):
-        vector = []
-        #总量
-        RANGE = 100000000*c
-
+        matrix = random.random((r,c))
         for i in range(r):
-            #剩余量
-            LEFT = RANGE
-            tmp = []
-            for j in range(c-1):
-                #-----------------------------------------------#
-                tmp_int = randint(1,int(2*LEFT/(c-j)))
-                LEFT = LEFT - tmp_int
-                tmp.append(log2(tmp_int/RANGE))
-            tmp.append(log2(LEFT/RANGE))
-            vector.append(tmp)
+            tmp = matrix[i,:].sum()
+            for j in range(c):
+                matrix[i,j] = log2(matrix[i,j]/tmp)
 
-        return np.array(vector)
+        return matrix
+
+    def set_minus_infinite(self,array,index_set):
+        tmp = []
+        for i in index_set:
+            tmp.append(array[i])
+            array[i] = self.MIN
+
+        index = 0
+        while index in index_set:
+            index = randint(1,len(array)-1)
+        array[index] = self.add(np.array([array[i],self.add(np.array(tmp))]))
+
 
     #训练
     def train(self):
@@ -134,21 +144,23 @@ class Markov:
             print("calculate emit matrix "+str(progress)+"/"+str(self.emit_num))
             key_index = self.emit_index[key]
 
-            bool_array_1 = self.str[:-1] == key
-            bool_array_2 = (bool_array_1 == False)*self.MIN*-1
-            bool_array = bool_array_1 + bool_array_2
+            tmp = [[],[],[],[]]
+            for i in range(self.str_length-1):
+                if key == self.str[i]:
+                    for j in range(self.state_num):
+                        tmp[j].append(self.probability[j,i])
 
             progress += 1
             for i in range(self.state_num):
-                self.emit_matrix[i,key_index] = self.add((bool_array)*self.probability[i,:]) - self.probability_sum[i,0]
+                self.emit_matrix[i,key_index] = self.add(np.array(tmp[i])) - self.probability_sum[i,0]
         
-        for i in range(self.state_num):
-            print(self.add(self.transfer_matrix[i,:]))
-            print(self.add(self.emit_matrix[i,:]))
+        # for i in range(self.state_num):
+        #     print(self.add(self.transfer_matrix[i,:]))
+        #     print(self.add(self.emit_matrix[i,:]))
 
-        print(self.transfer_matrix)
-        print(self.emit_matrix)
-        input()
+        # print(self.transfer_matrix)
+        # print(self.emit_matrix)
+        # input()
 
     #将ndarray中各元素相加
     def add(self,array):
@@ -175,21 +187,24 @@ class Markov:
         tmp = np.zeros((len(string),self.state_num))
         #记录父节点
         parents = np.zeros((len(string),self.state_num))
-        parents[0,:] = -1
+        item_index = self.emit_index[string[0]]
         tmp[0,:] = self.pi + self.emit_matrix[:,item_index]
         #维特比算法向前
-        for i in range(len(string)-1):
+        for i in range(1,len(string)):
             for j in range(self.state_num):
                 former = tmp[i-1,:]+self.transfer_matrix[:,j]
-                tmp[i,j] = former.max()+self.emit_index[j,string[i]]
+                tmp[i,j] = former.max()+self.emit_matrix[j,self.emit_index[string[i]]]
                 parents[i,j] = self.max_index(former)
         #维特比算法向后
         previous = self.max_index(tmp[-1,:])
         state_chain = self.index_to_state[previous]
         for i in list(range(1,len(string)))[::-1]:
-            previous = tmp[i,previous]
+            previous = parents[i,previous]
             state_chain += self.index_to_state[previous]
         state_chain = state_chain[::-1]
+
+        print(string)
+        print(state_chain)
 
     #返回最大值索引
     def max_index(self,array):
