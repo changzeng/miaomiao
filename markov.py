@@ -24,8 +24,9 @@ class Markov:
 
     #初始化markov模型的所有参数
     def initial_parameter(self):
+        self.MIN = -1e100;
         #初始状态矩阵
-        self.pi = np.array([-1,0,0,-1])
+        self.pi = np.array([-1.0,self.MIN,self.MIN,-1.0])
         #如果存在文件
         if os.path.exists("markov.data"):
             with open("markov.data") as fd:
@@ -57,7 +58,7 @@ class Markov:
     def get_random_matrix(self,r,c):
         vector = []
         #总量
-        RANGE = 10000*c
+        RANGE = 100000000*c
 
         for i in range(r):
             #剩余量
@@ -65,7 +66,7 @@ class Markov:
             tmp = []
             for j in range(c-1):
                 #-----------------------------------------------#
-                tmp_int = randint(int(LEFT/(c*2)),int(LEFT/(c/2)))
+                tmp_int = randint(1,int(2*LEFT/(c-j)))
                 LEFT = LEFT - tmp_int
                 tmp.append(log2(tmp_int/RANGE))
             tmp.append(log2(LEFT/RANGE))
@@ -95,11 +96,11 @@ class Markov:
                 a[j,i] = self.add(tmp)+self.get_emit_probability(j,i)
                 #计算向后变量
                 tmp = b[:,self.str_length-i]+self.get_emit_probability(-1,i)+self.transfer_matrix[j,:]
-                b[j][self.str_length-i-1] = self.add(tmp)
+                b[j,self.str_length-i-1] = self.add(tmp)
 
         #初始化条件矩阵概率
         progress = 1
-        self.condition_matrix = np.zeros((self.str_length,self.state_num,self.state_num))
+        self.condition_matrix = np.zeros((self.str_length-1,self.state_num,self.state_num))
         self.probability = np.zeros((self.state_num,self.str_length-1))
         #计算条件概率
         for i in range(self.str_length-1):
@@ -109,7 +110,10 @@ class Markov:
                 for k in range(self.state_num):
                     #待优化
                     self.condition_matrix[i,j,k] = a[j,i]+self.transfer_matrix[j,k]+self.get_emit_probability(k,i+1)+b[k,i+1]
-                self.probability[j,i] = self.add(self.condition_matrix[i,j,:])
+                
+            self.condition_matrix[i,:,:] -= self.add(self.condition_matrix[i,:,:])
+            for k in range(self.state_num):
+                self.probability[k,i] = self.add(self.condition_matrix[i,k,:])
                 
         self.probability_sum = np.zeros((self.state_num,1))
         for i in range(self.state_num):
@@ -121,7 +125,6 @@ class Markov:
             #重新估计transfer_matrix
             progress = 1
             for j in range(self.state_num):
-                print("calculate transfer matrix "+str(progress)+"/"+str(self.state_num))
                 self.transfer_matrix[i,j] = self.add(self.condition_matrix[:,i,j]) - self.probability_sum[i,0]
                 progress += 1
 
@@ -130,10 +133,22 @@ class Markov:
         for key in self.emit_index:
             print("calculate emit matrix "+str(progress)+"/"+str(self.emit_num))
             key_index = self.emit_index[key]
-            bool_array = self.str[:-1] == key
+
+            bool_array_1 = self.str[:-1] == key
+            bool_array_2 = (bool_array_1 == False)*self.MIN*-1
+            bool_array = bool_array_1 + bool_array_2
+
             progress += 1
             for i in range(self.state_num):
                 self.emit_matrix[i,key_index] = self.add((bool_array)*self.probability[i,:]) - self.probability_sum[i,0]
+        
+        for i in range(self.state_num):
+            print(self.add(self.transfer_matrix[i,:]))
+            print(self.add(self.emit_matrix[i,:]))
+
+        print(self.transfer_matrix)
+        print(self.emit_matrix)
+        input()
 
     #将ndarray中各元素相加
     def add(self,array):
