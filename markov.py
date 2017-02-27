@@ -144,23 +144,24 @@ class Markov:
             print("calculate emit matrix "+str(progress)+"/"+str(self.emit_num))
             key_index = self.emit_index[key]
 
-            tmp = [[],[],[],[]]
-            for i in range(self.str_length-1):
-                if key == self.str[i]:
-                    for j in range(self.state_num):
-                        tmp[j].append(self.probability[j,i])
+            indexs = np.where(self.str[0:-1] == key)
+            tmp = [np.array([])]*self.state_num
+            for i in indexs:
+                for j in range(self.state_num):
+                    tmp[j] = np.append(tmp[j],self.probability[j,i])
 
             progress += 1
             for i in range(self.state_num):
                 self.emit_matrix[i,key_index] = self.add(np.array(tmp[i])) - self.probability_sum[i,0]
         
-        # for i in range(self.state_num):
-        #     print(self.add(self.transfer_matrix[i,:]))
-        #     print(self.add(self.emit_matrix[i,:]))
+    def display(self):
+        for i in range(self.state_num):
+            print(self.add(self.transfer_matrix[i,:]))
+            print(self.add(self.emit_matrix[i,:]))
 
-        # print(self.transfer_matrix)
-        # print(self.emit_matrix)
-        # input()
+        print(self.transfer_matrix)
+        print(self.emit_matrix)
+        input()
 
     #将ndarray中各元素相加
     def add(self,array):
@@ -215,6 +216,26 @@ class Markov:
 
         return -1
 
+    def compare(self):
+        with open("markov.data") as fd:
+            tmp_a = json.load(fd)
+        with open("markov_copy.data") as fd:
+            tmp_b = json.load(fd)
+
+        tmp_transfer_a = np.array(tmp_a["transfer_matrix"])
+        tmp_transfer_b = np.array(tmp_b["transfer_matrix"])
+
+        tmp_emit_a = np.array(tmp_a["emit_matrix"])
+        tmp_emit_b = np.array(tmp_b["emit_matrix"])
+
+        print((tmp_transfer_a-tmp_transfer_b).min(),(tmp_emit_a-tmp_emit_b).min(),sep="  ")
+
+    #output the sum of transfer matrix and emit matrix each row
+    def display_row_sum(self):
+        for i in range(self.state_num):
+            print(self.add(self.transfer_matrix[i,:]))
+            print(self.add(self.emit_matrix[i,:]))
+
     #将数据写入文件
     def save(self):
         markov = {}
@@ -229,6 +250,11 @@ class Markov:
         
 markov = Markov()
 markov.initial_parameter()
-while True:
-    markov.train()
-    markov.save()
+# markov.compare()
+markov.cut("中国永远是维护世界和平与稳定的重要力量")
+markov.display_row_sum()
+print(markov.transfer_matrix)
+# # markov.display()
+# while True:
+#     markov.train()
+#     markov.save()
