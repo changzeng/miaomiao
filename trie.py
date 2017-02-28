@@ -1,3 +1,5 @@
+#encoding:utf-8
+
 import os,json
 
 class Trie:
@@ -13,17 +15,17 @@ class Trie:
 			with open("word_warehouse.txt") as fd:
 				for line in fd.readlines():
 					word = line.split("\t")[1]
-					self.put_into_dic(word)
+					self.putIntoDic(word)
 
-			#write dic to file
-			with open("trie.data","w") as fd:
-				json.dump(self.dic,fd)
+			self.save()
 
 	#write a word to dic
-	def put_into_dic(self,word):
+	def putIntoDic(self,word):
 		tmp = self.dic
 		for i,char in enumerate(word):
 			try:
+				if i == len(word)-1:
+					tmp[char][0] = 1
 				tmp = tmp[char][1]
 			except:
 				if i == len(word)-1:
@@ -33,7 +35,7 @@ class Trie:
 				tmp = tmp[char][1]
 
 	#validity judgement
-	def is_a_word(self,word):
+	def isAWord(self,word):
 		tmp = self.dic
 		for i,char in enumerate(word):
 			try:
@@ -42,3 +44,31 @@ class Trie:
 				tmp = tmp[char][1]
 			except:
 				return False
+
+	#alter file encoding
+	def alterFileEncoding(self,file_name):
+		#read
+		with open(file_name,encoding="gbk") as fd:
+			text = fd.read()
+		#rewrite
+		with open(file_name,"w",encoding="utf8") as fd:
+			fd.write(text)
+
+	#add word from file
+	def addFromFile(self,file_name):
+		with open(file_name) as fd:
+			for line in fd.readlines():
+				line = line.strip()
+				if "→" in line:
+					tmp = line.split("→")
+					self.putIntoDic(tmp[0])
+					self.putIntoDic(tmp[1])
+				else:
+					self.putIntoDic(line)
+
+		self.save()
+
+	#write dic to file
+	def save(self):
+		with open("trie.data","w") as fd:
+			json.dump(self.dic,fd)
