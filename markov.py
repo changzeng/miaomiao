@@ -7,7 +7,10 @@ from random import randint
 
 class Markov:
     def __init__(self):
-        self.MIN = -1e100;
+        self.MIN = -1e100
+        #if this variable is True show progress if else do not show progress
+        self.show_progress = True
+        self.initial_parameter()
 
     #确定每一个字在emit_matrix中的序列号
     def get_emit_index(self):
@@ -98,7 +101,8 @@ class Markov:
         progress = 1
         #计算前后向变量
         for i in range(1,self.str_length):
-            print("calculate forward and backward matrix "+str(progress)+"/"+str(self.str_length))
+            if self.show_progress:
+                print("calculate forward and backward matrix "+str(progress)+"/"+str(self.str_length))
             progress += 1
             for j in range(self.state_num):
                 #计算向前变量
@@ -114,7 +118,8 @@ class Markov:
         self.probability = np.zeros((self.state_num,self.str_length-1))
         #计算条件概率
         for i in range(self.str_length-1):
-            print("calculate condition matrix "+str(progress)+"/"+str(self.str_length-1))
+            if self.show_progress:
+                print("calculate condition matrix "+str(progress)+"/"+str(self.str_length-1))
             progress += 1
             for j in range(self.state_num):
                 for k in range(self.state_num):
@@ -127,7 +132,8 @@ class Markov:
                 
         self.probability_sum = np.zeros((self.state_num,1))
         for i in range(self.state_num):
-            print("calculate condition probability's summary "+str(i+1)+"/"+str(self.state_num))
+            if self.show_progress:
+                print("calculate condition probability's summary "+str(i+1)+"/"+str(self.state_num))
             self.probability_sum[i,0] = self.add(self.probability[i,:])
     
         #重新估计transfer_matrix和emit_matrix
@@ -141,7 +147,8 @@ class Markov:
         #重新估计emit_matrix
         progress = 1
         for key in self.emit_index:
-            print("calculate emit matrix "+str(progress)+"/"+str(self.emit_num))
+            if self.show_progress:
+                print("calculate emit matrix "+str(progress)+"/"+str(self.emit_num))
             key_index = self.emit_index[key]
 
             indexs = np.where(self.str[0:-1] == key)
@@ -153,15 +160,6 @@ class Markov:
             progress += 1
             for i in range(self.state_num):
                 self.emit_matrix[i,key_index] = self.add(np.array(tmp[i])) - self.probability_sum[i,0]
-        
-    def display(self):
-        for i in range(self.state_num):
-            print(self.add(self.transfer_matrix[i,:]))
-            print(self.add(self.emit_matrix[i,:]))
-
-        print(self.transfer_matrix)
-        print(self.emit_matrix)
-        input()
 
     #将ndarray中各元素相加
     def add(self,array):
@@ -216,6 +214,18 @@ class Markov:
 
         return -1
 
+    #将数据写入文件
+    def save(self):
+        markov = {}
+        markov["emit_index"] = self.emit_index
+        markov["emit_num"] = self.emit_num
+        markov["state_num"] = self.state_num
+        markov["state_index"] = self.state_index
+        markov["emit_matrix"] = self.to_list(self.emit_matrix)
+        markov["transfer_matrix"] = self.to_list(self.transfer_matrix)
+        with open("markov.data","w") as fd:
+            json.dump(markov,fd)
+
     def compare(self):
         with open("markov.data") as fd:
             tmp_a = json.load(fd)
@@ -228,33 +238,15 @@ class Markov:
         tmp_emit_a = np.array(tmp_a["emit_matrix"])
         tmp_emit_b = np.array(tmp_b["emit_matrix"])
 
-        print((tmp_transfer_a-tmp_transfer_b).min(),(tmp_emit_a-tmp_emit_b).min(),sep="  ")
+        print((tmp_transfer_a-tmp_transfer_b).max(),(tmp_emit_a-tmp_emit_b).max(),sep="  ")
 
     #output the sum of transfer matrix and emit matrix each row
-    def display_row_sum(self):
+    #and display stransfer matrix and emit matrix
+    def display(self):
         for i in range(self.state_num):
             print(self.add(self.transfer_matrix[i,:]))
             print(self.add(self.emit_matrix[i,:]))
 
-    #将数据写入文件
-    def save(self):
-        markov = {}
-        markov["emit_index"] = self.emit_index
-        markov["emit_num"] = self.emit_num
-        markov["state_num"] = self.state_num
-        markov["state_index"] = self.state_index
-        markov["emit_matrix"] = self.to_list(self.emit_matrix)
-        markov["transfer_matrix"] = self.to_list(self.transfer_matrix)
-        with open("markov.data","w") as fd:
-            json.dump(markov,fd)
+        print(self.transfer_matrix)
+        print(self.emit_matrix)
         
-markov = Markov()
-markov.initial_parameter()
-# markov.compare()
-markov.cut("中国永远是维护世界和平与稳定的重要力量")
-markov.display_row_sum()
-print(markov.transfer_matrix)
-# # markov.display()
-# while True:
-#     markov.train()
-#     markov.save()
