@@ -136,6 +136,9 @@ class Markov:
                 print("calculate condition probability's summary "+str(i+1)+"/"+str(self.state_num))
             self.probability_sum[i,0] = self.add(self.probability[i,:])
     
+        #save parameter to 'markov_copy.data'
+        self.save("markov_copy.data")
+
         #重新估计transfer_matrix和emit_matrix
         for i in range(self.state_num):
             #重新估计transfer_matrix
@@ -202,8 +205,13 @@ class Markov:
             state_chain += self.index_to_state[previous]
         state_chain = state_chain[::-1]
 
-        print(string)
-        print(state_chain)
+        result = ""
+        for i,state in enumerate(state_chain):
+            result += string[i]
+            if state == "E" or state == "S":
+                result += " "
+
+        print(result)
 
     #返回最大值索引
     def max_index(self,array):
@@ -215,7 +223,7 @@ class Markov:
         return -1
 
     #将数据写入文件
-    def save(self):
+    def save(self,file_name = "markov.data"):
         markov = {}
         markov["emit_index"] = self.emit_index
         markov["emit_num"] = self.emit_num
@@ -223,7 +231,7 @@ class Markov:
         markov["state_index"] = self.state_index
         markov["emit_matrix"] = self.to_list(self.emit_matrix)
         markov["transfer_matrix"] = self.to_list(self.transfer_matrix)
-        with open("markov.data","w") as fd:
+        with open(file_name,"w") as fd:
             json.dump(markov,fd)
 
     def compare(self):
@@ -249,4 +257,3 @@ class Markov:
 
         print(self.transfer_matrix)
         print(self.emit_matrix)
-        
