@@ -4,6 +4,7 @@ import os,json
 
 class Trie:
 	def __init__(self):
+		self.max_length = 4
 		self.dic = {}
 
 		if os.path.exists("trie.data"):
@@ -67,6 +68,73 @@ class Trie:
 					self.putIntoDic(line)
 
 		self.save()
+
+	#positive match
+	def positive_max_match(self,sentence):
+		i=0
+		j=i+self.max_length
+		words = []
+		while True:
+			#print(sentence[i:j])
+			if self.isAWord(sentence[i:j]):
+				words.append(sentence[i:j])
+				i = j
+				j += self.max_length
+			else:
+				j -= 1
+				if j==i+1:
+					# print(words[i:j])
+					words.append(sentence[i:j])
+					i = j
+					j += self.max_length
+			if i>=len(sentence):
+				break
+			while j>len(sentence):
+				j -= 1
+
+		print(words)
+		return words
+
+	#nagetive match
+	def nagetive_max_match(self,sentence):
+		j = len(sentence)
+		i = j - self.max_length
+		words = []
+		while True:
+			#print(sentence[i:j])
+			if self.isAWord(sentence[i:j]):
+				#print(sentence[i:j])
+				words.insert(0,sentence[i:j])
+				j = i
+				i -= self.max_length
+			else:
+				i += 1
+				if i == j-1:
+					words.insert(0,sentence[i:j])
+					j = i
+					i = j - self.max_length
+			if j<= 0:
+				break
+			while i<0:
+				i += 1
+
+		print(words)
+		return words
+
+	#all conditions will be acquired
+	def all_cut(self,sentence):
+		cut_map = []
+
+		for i in range(len(sentence)):
+			tmp = []
+			for j in range(i+1,i+self.max_length+1):
+				if j > len(sentence):
+					break
+				if self.isAWord(sentence[i:j]):
+					tmp.append(j)
+			cut_map.append(tmp)
+
+		return cut_map
 
 	#write dic to file
 	def save(self):

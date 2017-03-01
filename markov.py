@@ -183,6 +183,10 @@ class Markov:
             result.append(list(item))
         return result
 
+    #generate the most likely condition from cut map
+    def generateFromCutMap(self,sentence,cut_map):
+        pass
+
     #分词
     def cut(self,string):
         #维特比算法的临时数组
