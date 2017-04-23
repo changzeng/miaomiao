@@ -1,6 +1,6 @@
 #encoding:utf-8
 
-import os,json
+import os,json,math,pandas
 
 class Trie:
 	def __init__(self):
@@ -13,7 +13,7 @@ class Trie:
 				self.dic = json.load(fd)
 		else:
 			#parse from file
-			with open("word_warehouse.txt") as fd:
+			with open("txt/word_warehouse.txt") as fd:
 				for line in fd.readlines():
 					word = line.split("\t")[1]
 					self.putIntoDic(word)
@@ -27,13 +27,14 @@ class Trie:
 			try:
 				if i == len(word)-1:
 					tmp[char][0] = 1
-				tmp = tmp[char][1]
+				else:
+					tmp = tmp[char][1]
 			except:
 				if i == len(word)-1:
 					tmp[char] = [1,{}]
 				else:
 					tmp[char] = [0,{}]
-				tmp = tmp[char][1]
+					tmp = tmp[char][1]
 
 	#validity judgement
 	def isAWord(self,word):
@@ -118,11 +119,23 @@ class Trie:
 			while i<0:
 				i += 1
 
-		print(words)
 		return words
+
+	def getFre(self,word):
+		tmp = self.dic
+		for i,char in enumerate(word):
+			try:
+				if i == len(word)-1:
+					return tmp[char][2]
+				else:
+					tmp = tmp[char][1]
+			except:
+				return -math.log2(0.0000001)
+
 
 	#all conditions will be acquired
 	def all_cut(self,sentence):
+		length = len(sentence)
 		cut_map = []
 
 		for i in range(len(sentence)):
@@ -134,7 +147,43 @@ class Trie:
 					tmp.append(j)
 			cut_map.append(tmp)
 
-		return cut_map
+		#Dijkstra
+		visited = set()
+		visited.add(0)
+		dis = [ math.inf for i in range(len(sentence)+1) ]
+		pre = [ -1 for i in range(len(sentence)+1) ]
+
+		for item in cut_map[0]:
+			pre[item] = 0;
+			dis[item] = self.getFre(sentence[0:item])
+
+		while True:
+			min_number = math.inf
+			min_index = 0;
+			for i in range(1,length+1):
+				if i not in visited and dis[i] != math.inf:
+					if(dis[i] < min_number):
+						min_number = dis[i]
+						min_index = i
+
+			if min_index == length:
+				break
+
+			visited.add(min_index)
+			for item in cut_map[min_index]:
+				if self.getFre(sentence[min_index:item]) + dis[min_index] < dis[item]:
+					pre[item] = min_index
+					dis[item] = self.getFre(sentence[min_index:item]) + dis[min_index]
+
+		result = []
+		cur_position = length
+		pre_position = pre[cur_position]
+		while pre_position != -1:
+			result.insert(0,sentence[pre_position:cur_position])
+			cur_position = pre_position
+			pre_position = pre[cur_position]
+
+		return result
 
 	#write dic to file
 	def save(self):
