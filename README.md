@@ -16,5 +16,5 @@ I used Trie Tress as a dicionary to cut sentence into a number of words.First pr
 ### Using Dijkstra
 After obtained the cut map.I used Dijkstra algorithm to chose the most possible cut result.The parameter of this markov model was not trained by myself but from jieba since training a markov model is expensive and I don't have enough time.
 
-### Markov Recognize Unknow Words
+### Markov Recognizing Unknow Words
 This part was implemented by using viterbi algorithm.
