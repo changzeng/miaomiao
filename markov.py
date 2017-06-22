@@ -32,19 +32,15 @@ class Markov:
 
     #初始化markov模型的所有参数
     def initial_parameter(self):
-        #初始状态矩阵
-        self.pi = np.array([-1.0,self.MIN,self.MIN,-1.0])
-        #如果存在文件
-        if os.path.exists("markov.data"):
-            with open("markov.data") as fd:
-                markov = json.load(fd)
-                self.emit_index = markov["emit_index"]
-                self.emit_num = markov["emit_num"]
-                self.state_num = markov["state_num"]
-                self.state_index = markov["state_index"]
-                self.emit_matrix = np.array(markov["emit_matrix"])
-                self.transfer_matrix = np.array(markov["transfer_matrix"])
-        else:
+        #初始化参数
+        try:
+
+            import prob_emit,prob_trans,prob_start
+            self.emit_matrix = prob_emit.P
+            self.transfer_matrix = prob_trans.P
+            self.start_matrix = prob_start.P
+
+        except:
             #获得索引
             self.get_emit_index()
             #--状态索引
@@ -59,11 +55,12 @@ class Markov:
             self.set_minus_infinite(self.transfer_matrix[1],(0,3))
             self.set_minus_infinite(self.transfer_matrix[2],(1,2))
             self.set_minus_infinite(self.transfer_matrix[3],(1,2))
-        self.index_to_state = {0:'B',1:'M',2:'E',3:'S'}
-        #读入数据并计算长度
-        with open("new_train.data") as fd:
-            self.str = np.array(list(fd.read()))
-            self.str_length = len(self.str)
+
+            self.index_to_state = {0:'B',1:'M',2:'E',3:'S'}
+            #读入数据并计算长度
+            with open("new_train.data") as fd:
+                self.str = np.array(list(fd.read()))
+                self.str_length = len(self.str)
 
     #返回一个和为1的随机向量
     def get_random_matrix(self,r,c):
@@ -183,24 +180,38 @@ class Markov:
             result.append(list(item))
         return result
 
-    #generate the most likely condition from cut map
+    # generate the most likely condition from cut map
     def generateFromCutMap(self,sentence,cut_map):
         pass
 
     #分词
     def cut(self,string):
-        #维特比算法的临时数组
-        tmp = np.zeros((len(string),self.state_num))
-        #记录父节点
-        parents = np.zeros((len(string),self.state_num))
-        item_index = self.emit_index[string[0]]
-        tmp[0,:] = self.pi + self.emit_matrix[:,item_index]
-        #维特比算法向前
-        for i in range(1,len(string)):
-            for j in range(self.state_num):
-                former = tmp[i-1,:]+self.transfer_matrix[:,j]
-                tmp[i,j] = former.max()+self.emit_matrix[j,self.emit_index[string[i]]]
-                parents[i,j] = self.max_index(former)
+        # 结果
+        result = []
+        # 父节点
+        parent = {'B':[],'E':[],'M':[],'S':[]}
+        # 保存临时的概率
+        tmp = {'B':0,'E':0,'M':0,'S':0}
+        # 维特比算法向前
+        for i in range(0,len(string)):
+            for start in ('B','E','M','S'):
+                if i is 0:
+                    tmp[start] = self.start_matrix[start] + self.emit_matrix[start][string[i]]
+                else:
+                    # maximum probability
+                    p = self.MIN
+                    # next hidden start
+                    n = None
+                    for end in ('B','E','M','S'):
+                        try:
+                            q = self.transfer_matrix[start][end]
+                        except:
+                            q = self.MIN
+
+
+
+
+                parent[key].append(prob)
         #维特比算法向后
         previous = self.max_index(tmp[-1,:])
         state_chain = self.index_to_state[previous]
@@ -261,3 +272,5 @@ class Markov:
 
         print(self.transfer_matrix)
         print(self.emit_matrix)
+
+markov = Markov()

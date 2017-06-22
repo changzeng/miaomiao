@@ -1,6 +1,6 @@
 #encoding:utf-8
 
-import os,json,math,pandas
+import os,json,math
 
 class Trie:
 	def __init__(self):
@@ -12,26 +12,49 @@ class Trie:
 			with open("trie.data") as fd:
 				self.dic = json.load(fd)
 		else:
-			#parse from file
-			with open("txt/word_warehouse.txt") as fd:
-				for line in fd.readlines():
-					word = line.split("\t")[1]
-					self.putIntoDic(word)
+			#build trie tree
+			self.buildTrie()
 
-			self.save()
+	# set probability
+	def setProbability(self,dic):
+		for key in dic:
+			if dic[key][0] == 1:
+				# print(dic[key][0],dic[key][2],sep="  ")
+				dic[key][2] = -math.log2(dic[key][2] / self.total_count)
+			self.setProbability(dic[key][1])
+
+	# build Trie
+	def buildTrie(self):
+		self.total_count = 0
+
+		with open("dict.txt",encoding="utf8",errors="ignore") as fd:
+			line = fd.readline()
+			while line is not '':
+				line = line.strip()
+				items = line.split(" ")
+				self.putIntoDic(items[0],int(items[1]),items[2])
+				self.total_count += int(items[1])
+				line = fd.readline()
+
+		self.setProbability(self.dic)
+
+		# dump dictionary into file
+		with open("trie.data","w") as fd:
+			json.dump(self.dic,fd)
 
 	#write a word to dic
-	def putIntoDic(self,word):
+	def putIntoDic(self,word,freq,p):
 		tmp = self.dic
 		for i,char in enumerate(word):
 			try:
 				if i == len(word)-1:
 					tmp[char][0] = 1
+					tmp[char] += [freq,p]
 				else:
 					tmp = tmp[char][1]
 			except:
 				if i == len(word)-1:
-					tmp[char] = [1,{}]
+					tmp[char] = [1,{},freq,p]
 				else:
 					tmp[char] = [0,{}]
 					tmp = tmp[char][1]
@@ -130,11 +153,15 @@ class Trie:
 				else:
 					tmp = tmp[char][1]
 			except:
-				return -math.log2(0.0000001)
+				print("word not exists")
+
+				return None
 
 
 	#all conditions will be acquired
 	def all_cut(self,sentence):
+		unknow_words = []
+
 		length = len(sentence)
 		cut_map = []
 
@@ -147,19 +174,35 @@ class Trie:
 					tmp.append(j)
 			cut_map.append(tmp)
 
-		#Dijkstra
+		# adjust cut map
+		i = 0
+		while i < len(sentence):
+			if len(cut_map[i]) is 0:
+				j = i
+				for i in range(i+1,len(sentence)):
+					if len(cut_map[i]) is 0:
+						continue
+					else:
+						cut_map[j].append(i)
+						unknow_words.append([j,i])
+
+			i += 1
+
+		# Dijkstra
 		visited = set()
 		visited.add(0)
 		dis = [ math.inf for i in range(len(sentence)+1) ]
 		pre = [ -1 for i in range(len(sentence)+1) ]
 
+		# get distance with start node
 		for item in cut_map[0]:
 			pre[item] = 0;
 			dis[item] = self.getFre(sentence[0:item])
 
+		#print(cut_map)
 		while True:
 			min_number = math.inf
-			min_index = 0;
+			min_index = 0
 			for i in range(1,length+1):
 				if i not in visited and dis[i] != math.inf:
 					if(dis[i] < min_number):
@@ -185,7 +228,14 @@ class Trie:
 
 		return result
 
-	#write dic to file
-	def save(self):
-		with open("trie.data","w") as fd:
-			json.dump(self.dic,fd)
+# testing example
+# trie = Trie()
+# with open("dict.txt",encoding="utf8",errors="ignore") as fd:
+# 	line = fd.readline()
+# 	while line is not '':
+# 		line = line.strip()
+# 		items = line.split(" ")
+# 		print(trie.getFre(items[0]))
+# 		line = fd.readline()
+# result = trie.all_cut("中华人民共和国香港特别行政区")
+# print(result)
