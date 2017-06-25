@@ -157,10 +157,11 @@ class Trie:
             except:
                 print("word not exists")
 
+                print(word)
                 return self.MAX
 
     # all conditions will be acquired
-    def all_cut(self, sentence):
+    def cut(self, sentence):
         unknow_words = []
 
         length = len(sentence)
@@ -238,5 +239,5 @@ class Trie:
         # 		items = line.split(" ")
         # 		print(trie.getFre(items[0]))
         # 		line = fd.readline()
-        # result = trie.all_cut("中华人民共和国香港特别行政区")
+        # result = trie.cut("中华人民共和国香港特别行政区")
         # print(result)

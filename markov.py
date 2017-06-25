@@ -198,26 +198,30 @@ class Markov:
             for end in ('B', 'E', 'M', 'S'):
                 # if current node is start node
                 if i is 0:
-                    tmp[end] = self.start_matrix[end] + self.emit_matrix[end][string[i]]
+                    new_tmp[end] = -self.start_matrix[end] + -self.emit_matrix[end][string[i]]
                 else:
                     # maximum probability
-                    p = self.MIN
+                    p = -self.MIN
                     # next hidden start
                     n = None
-                    q = self.MIN
+                    q = -self.MIN
                     for start in ('B', 'E', 'M', 'S'):
                         # get probability from transfer matrix
                         try:
-                            q = self.transfer_matrix[start][end]
+                            q = -self.transfer_matrix[start][end]
                         except:
-                            q = self.MIN
+                            q = -self.MIN
 
-                        if tmp[start] + q + self.emit_matrix[end][string[i]] > p:
-                            p = tmp[start] + q + self.emit_matrix[end][string[i]]
+                        # print(start,end,sep=" ")
+                        # print(q,-self.emit_matrix[end][string[i]],tmp[start] + q + -self.emit_matrix[end][string[i]],sep=" ")
+                        # input()
+
+                        if tmp[start] + q + -self.emit_matrix[end][string[i]] < p:
+                            p = tmp[start] + q + -self.emit_matrix[end][string[i]]
                             n = start
-
+                    # print(n)
                     parent[end].append(n)
-                    new_tmp[end] = tmp[n] + q + self.emit_matrix[end][string[i]]
+                    new_tmp[end] = p
 
             tmp = copy(new_tmp)
 
@@ -225,7 +229,7 @@ class Markov:
         p = self.MIN
         n = None
         # find the maximum last node
-        print(tmp)
+        # print(tmp)
         for key in tmp:
             if tmp[key] > p:
                 n = key
@@ -236,7 +240,17 @@ class Markov:
         for i in range(1, len(string)):
             result.append(parent[result[-1]][-i])
 
-        # print(result)
+        result = result[::-1]
+        cut_result = []
+        tmp = ""
+        for i,item in enumerate(result):
+            tmp += string[i]
+            if item in ('E','S'):
+                cut_result.append(tmp)
+                tmp = ""
+
+        return cut_result
+
 
     # 返回最大值索引
     def max_index(self, array):
@@ -271,7 +285,7 @@ class Markov:
         tmp_emit_a = np.array(tmp_a["emit_matrix"])
         tmp_emit_b = np.array(tmp_b["emit_matrix"])
 
-        print((tmp_transfer_a - tmp_transfer_b).max(), (tmp_emit_a - tmp_emit_b).max(), sep="  ")
+        # print((tmp_transfer_a - tmp_transfer_b).max(), (tmp_emit_a - tmp_emit_b).max(), sep="  ")
 
     # output the sum of transfer matrix and emit matrix each row
     # and display stransfer matrix and emit matrix
