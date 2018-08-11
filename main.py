@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from trie import Trie
 from markov import Markov
 import jieba
@@ -32,9 +34,9 @@ for item in sentence:
 	jieba_cut = list(jieba.cut(item[1]))
 
 	print("----------------------------")
-	print("trie:",trie_cut)
-	print("markov:",markov_cut)
-	print("jieba:",jieba_cut)
+	print("trie:", trie_cut)
+	print("markov:", markov_cut)
+	print("jieba:", jieba_cut)
 	print("----------------------------")
 
 # some thing need to improve

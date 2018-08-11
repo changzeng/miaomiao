@@ -121,9 +121,7 @@ class Markov:
             for j in range(self.state_num):
                 for k in range(self.state_num):
                     # 待优化
-                    self.condition_matrix[i, j, k] = a[j, i] + self.transfer_matrix[j, k] + self.get_emit_probability(k,
-                                                                                                                      i + 1) + \
-                                                     b[k, i + 1]
+                    self.condition_matrix[i, j, k] = a[j, i] + self.transfer_matrix[j, k] + self.get_emit_probability(k, i+1) + b[k, i + 1]
 
             self.condition_matrix[i, :, :] -= self.add(self.condition_matrix[i, :, :])
             for k in range(self.state_num):
@@ -191,51 +189,46 @@ class Markov:
         # 父节点
         parent = {'B': [], 'E': [], 'M': [], 'S': []}
         # 保存临时的概率
-        tmp = {'B': 0, 'E': 0, 'M': 0, 'S': 0}
-        new_tmp = {'B': 0, 'E': 0, 'M': 0, 'S': 0}
+        alpha = {'B': 0, 'E': 0, 'M': 0, 'S': 0}
+        new_alpha = {'B': 0, 'E': 0, 'M': 0, 'S': 0}
         # 维特比算法向前
         for i in range(0, len(string)):
             for end in ('B', 'E', 'M', 'S'):
                 # if current node is start node
                 if i is 0:
-                    new_tmp[end] = -self.start_matrix[end] + -self.emit_matrix[end][string[i]]
+                    new_alpha[end] = self.start_matrix[end] + self.emit_matrix[end][string[i]]
                 else:
                     # maximum probability
-                    p = -self.MIN
+                    p = self.MIN
                     # next hidden start
                     n = None
-                    q = -self.MIN
+                    q = self.MIN
                     for start in ('B', 'E', 'M', 'S'):
                         # get probability from transfer matrix
                         try:
-                            q = -self.transfer_matrix[start][end]
+                            q = self.transfer_matrix[start][end]
                         except:
-                            q = -self.MIN
+                            q = self.MIN
 
-                        # print(start,end,sep=" ")
-                        # print(q,-self.emit_matrix[end][string[i]],tmp[start] + q + -self.emit_matrix[end][string[i]],sep=" ")
-                        # input()
-
-                        if tmp[start] + q + -self.emit_matrix[end][string[i]] < p:
-                            p = tmp[start] + q + -self.emit_matrix[end][string[i]]
+                        if alpha[start] + q + self.emit_matrix[end][string[i]] > p:
+                            p = alpha[start] + q + self.emit_matrix[end][string[i]]
                             n = start
                     # print(n)
                     parent[end].append(n)
-                    new_tmp[end] = p
+                    new_alpha[end] = p
 
-            tmp = copy(new_tmp)
+            alpha = new_alpha
+            new_alpha = {'B': 0, 'E': 0, 'M': 0, 'S': 0}
 
         result = []
         p = self.MIN
-        n = None
-        # find the maximum last node
-        # print(tmp)
-        for key in tmp:
-            if tmp[key] > p:
-                n = key
-                p = tmp[key]
+        for key in ('E', 'S'):
+            # print(alpha[key], key, sep=" ")
+            if alpha[key] > p:
+                end_node = key
+                p = alpha[key]
 
-        result.append(n)
+        result.append(end_node)
 
         for i in range(1, len(string)):
             result.append(parent[result[-1]][-i])
